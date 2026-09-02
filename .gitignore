@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+dist/
+build/
+
+# TypeScript build output
+src/**/*.js
+*.d.ts
+
+# Environment files
+.env
+.env.*
+
+# SQLite
+*.db
+*.sqlite
+
+# OS
+.DS_Store
