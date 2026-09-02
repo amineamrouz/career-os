@@ -17,17 +17,31 @@ const action = (over: Partial<Action> = {}): Action => ({
   ...over,
 });
 
-const goal = (over: Partial<GoalWithActions> = {}): GoalWithActions => ({
-  id: 1,
-  title: 'Learn Angular',
-  description: null,
-  targetDate: null,
-  status: 'active',
-  createdAt: '2026-09-01T10:00:00.000Z',
-  updatedAt: '2026-09-01T10:00:00.000Z',
-  actions: [],
-  ...over,
+/** Progress as the API would compute it for the given actions. */
+const progressFor = (actions: Action[]) => ({
+  totalActions: actions.length,
+  completedActions: actions.filter((a) => a.completed).length,
+  percentage:
+    actions.length === 0
+      ? 0
+      : Math.round((actions.filter((a) => a.completed).length / actions.length) * 100),
 });
+
+const goal = (over: Partial<GoalWithActions> = {}): GoalWithActions => {
+  const actions = over.actions ?? [];
+  return {
+    id: 1,
+    title: 'Learn Angular',
+    description: null,
+    targetDate: null,
+    status: 'active',
+    createdAt: '2026-09-01T10:00:00.000Z',
+    updatedAt: '2026-09-01T10:00:00.000Z',
+    progress: progressFor(actions),
+    ...over,
+    actions,
+  };
+};
 
 describe('GoalDetail', () => {
   let fixture: ComponentFixture<GoalDetail>;
@@ -76,11 +90,81 @@ describe('GoalDetail', () => {
     expect(host().querySelectorAll('.done')).toHaveLength(1);
   });
 
-  it('says so when the goal has no actions', async () => {
+  it('says so when the goal has no actions, with no bar and no 0%', async () => {
     http.expectOne(GOAL_URL).flush(goal());
     await fixture.whenStable();
 
     expect(text()).toContain('No actions yet');
+    expect(text()).not.toContain('0%');
+    expect(host().querySelector('.progress')).toBeNull();
+  });
+
+  it('shows the progress bar and summary line', async () => {
+    http.expectOne(GOAL_URL).flush(
+      goal({
+        actions: [
+          action({ id: 10, completed: true }),
+          action({ id: 11 }),
+          action({ id: 12 }),
+        ],
+      }),
+    );
+    await fixture.whenStable();
+
+    expect(text()).toContain('1 / 3 actions completed (33%)');
+    const bar = host().querySelector<HTMLElement>('.progress')!;
+    expect(bar.getAttribute('aria-valuenow')).toBe('33');
+    expect(bar.querySelector<HTMLElement>('.progress__fill')!.style.width).toBe('33%');
+  });
+
+  it('moves the bar when an action is checked, without refetching the goal', async () => {
+    http.expectOne(GOAL_URL).flush(goal({ actions: [action({ id: 10 }), action({ id: 11 })] }));
+    await fixture.whenStable();
+    expect(text()).toContain('0 / 2 actions completed (0%)');
+
+    host().querySelector<HTMLInputElement>('input[type=checkbox]')!.click();
+    http.expectOne(`${GOAL_URL}/actions/10`).flush(action({ id: 10, completed: true }));
+    await fixture.whenStable();
+
+    expect(text()).toContain('1 / 2 actions completed (50%)');
+    // No second GET: progress is re-derived locally.
+    http.expectNone(GOAL_URL);
+  });
+
+  it('moves the bar when an action is added or deleted', async () => {
+    http.expectOne(GOAL_URL).flush(goal({ actions: [action({ id: 10, completed: true })] }));
+    await fixture.whenStable();
+    expect(text()).toContain('1 / 1 actions completed (100%)');
+
+    const input = host().querySelector<HTMLInputElement>('input[type=text]')!;
+    input.value = 'Another';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    host()
+      .querySelector<HTMLFormElement>('form.add-action')!
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+    http.expectOne(`${GOAL_URL}/actions`).flush(action({ id: 11, title: 'Another' }));
+    await fixture.whenStable();
+
+    expect(text()).toContain('1 / 2 actions completed (50%)');
+
+    host().querySelectorAll<HTMLButtonElement>('li.action button')[1].click();
+    http.expectOne(`${GOAL_URL}/actions/11`).flush(null, { status: 204, statusText: 'No Content' });
+    await fixture.whenStable();
+
+    expect(text()).toContain('1 / 1 actions completed (100%)');
+  });
+
+  it('falls back to "No actions yet" once the last action is deleted', async () => {
+    http.expectOne(GOAL_URL).flush(goal({ actions: [action({ id: 10 })] }));
+    await fixture.whenStable();
+
+    host().querySelector<HTMLButtonElement>('li.action button')!.click();
+    http.expectOne(`${GOAL_URL}/actions/10`).flush(null, { status: 204, statusText: 'No Content' });
+    await fixture.whenStable();
+
+    expect(text()).toContain('No actions yet');
+    expect(host().querySelector('.progress')).toBeNull();
   });
 
   it('marks an action complete with an explicit true', async () => {

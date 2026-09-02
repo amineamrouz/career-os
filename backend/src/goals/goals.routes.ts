@@ -6,6 +6,7 @@ import { parseId } from '../params.js';
 import type { GoalWithActions } from '../types.js';
 import { createGoalsRepository, type GoalInput } from './goals.repository.js';
 import { goalBodySchema, type GoalBody } from './goals.schema.js';
+import { computeProgress } from './progress.js';
 
 /** Absent description/targetDate become null; absent status defaults to active. */
 const toInput = (body: GoalBody): GoalInput => ({
@@ -36,7 +37,15 @@ export function createGoalsRouter(db: Db): Router {
     if (!goal) {
       throw notFound(`Goal ${id} not found`);
     }
-    const body: GoalWithActions = { ...goal, actions: actions.findByGoalId(id) };
+    const goalActions = actions.findByGoalId(id);
+    const body: GoalWithActions = {
+      ...goal,
+      actions: goalActions,
+      progress: computeProgress(
+        goalActions.length,
+        goalActions.filter((action) => action.completed).length,
+      ),
+    };
     res.json(body);
   });
 

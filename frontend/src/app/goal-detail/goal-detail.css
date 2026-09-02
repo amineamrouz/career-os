@@ -42,3 +42,23 @@
 .add-action input {
   flex: 1;
 }
+
+.progress {
+  background: #eef0f3;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  height: 9px;
+  max-width: 22rem;
+  overflow: hidden;
+}
+
+.progress__fill {
+  background: var(--accent);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 1rem;
+}
