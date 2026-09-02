@@ -82,6 +82,23 @@ describe('GET /api/goals', () => {
     expect(res.body[0]).not.toHaveProperty('actions');
   });
 
+  it('carries an action count per goal, without the actions themselves', async () => {
+    const withNone = await createGoal({ title: 'No actions' });
+    const withTwo = await createGoal({ title: 'Two actions' });
+    for (const title of ['First action', 'Second action']) {
+      await request(app).post(`/api/goals/${withTwo.body.id}/actions`).send({ title });
+    }
+
+    const res = await request(app).get('/api/goals');
+
+    const counts = new Map<number, number>(
+      res.body.map((goal: { id: number; actionCount: number }) => [goal.id, goal.actionCount]),
+    );
+    expect(counts.get(withNone.body.id)).toBe(0);
+    expect(counts.get(withTwo.body.id)).toBe(2);
+    expect(res.body[0]).not.toHaveProperty('actions');
+  });
+
   it('returns an empty array when there are no goals', async () => {
     const res = await request(app).get('/api/goals');
 
@@ -196,5 +213,26 @@ describe('error handling', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error.message).toBe('Malformed JSON body');
+  });
+});
+
+describe('CORS', () => {
+  it('answers a preflight with 204 and the allow headers', async () => {
+    const res = await request(app)
+      .options('/api/goals')
+      .set('Origin', 'http://localhost:4200')
+      .set('Access-Control-Request-Method', 'POST');
+
+    expect(res.status).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
+    expect(res.headers['access-control-allow-methods']).toContain('PATCH');
+    expect(res.headers['access-control-allow-headers']).toBe('Content-Type');
+  });
+
+  it('sets allow-origin on a normal response too', async () => {
+    const res = await request(app).get('/api/goals');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
   });
 });

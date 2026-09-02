@@ -1,0 +1,44 @@
+.goal-meta {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+.timestamps {
+  font-size: 0.8rem;
+}
+
+.action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.action {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0;
+}
+
+.action-label {
+  cursor: pointer;
+}
+
+.action-label input {
+  cursor: pointer;
+}
+
+.done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.add-action {
+  margin-top: 1rem;
+}
+
+.add-action input {
+  flex: 1;
+}

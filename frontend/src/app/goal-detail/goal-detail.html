@@ -1,0 +1,84 @@
+<p><a routerLink="/">← Back to Goals</a></p>
+
+@if (error()) {
+  <div class="error" role="alert">
+    <p>{{ error() }}</p>
+    <button class="btn" type="button" (click)="load(id())">Retry</button>
+  </div>
+}
+
+@if (loading()) {
+  <p class="loading">Loading goal…</p>
+} @else if (goal()) {
+  <div class="row spread">
+    <h1>{{ goal()!.title }}</h1>
+    <button class="btn btn--danger" type="button" [disabled]="deletingGoal()" (click)="deleteGoal()">
+      Delete goal
+    </button>
+  </div>
+
+  <div class="row goal-meta">
+    <span class="badge badge--{{ goal()!.status }}">{{ goal()!.status }}</span>
+    @if (goal()!.targetDate) {
+      <span class="muted">Target {{ goal()!.targetDate }}</span>
+    }
+  </div>
+
+  @if (goal()!.description) {
+    <p class="description">{{ goal()!.description }}</p>
+  } @else {
+    <p class="muted">No description.</p>
+  }
+
+  <p class="muted timestamps">
+    Created {{ goal()!.createdAt }} · updated {{ goal()!.updatedAt }}
+  </p>
+
+  <h2>Actions</h2>
+
+  @if (actionError()) {
+    <div class="error" role="alert">{{ actionError() }}</div>
+  }
+
+  @if (goal()!.actions.length === 0) {
+    <p class="muted">No actions yet. Add the first one below.</p>
+  } @else {
+    <ul class="action-list">
+      @for (action of goal()!.actions; track action.id) {
+        <li class="row spread action">
+          <label class="row action-label">
+            <input
+              type="checkbox"
+              [checked]="action.completed"
+              [disabled]="isPending(action.id)"
+              (change)="toggleAction(action, $event)"
+            />
+            <span [class.done]="action.completed">{{ action.title }}</span>
+          </label>
+          <button
+            class="btn btn--danger"
+            type="button"
+            [disabled]="isPending(action.id)"
+            (click)="deleteAction(action)"
+          >
+            Delete
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <form class="row add-action" (submit)="$event.preventDefault(); addAction()">
+    <input
+      type="text"
+      placeholder="Add an action…"
+      aria-label="Action title"
+      [value]="newActionTitle()"
+      [disabled]="addingAction()"
+      (input)="onTitleInput($event)"
+    />
+    <button class="btn" type="submit" [disabled]="addingAction() || newActionTitle().trim() === ''">
+      Add
+    </button>
+  </form>
+}

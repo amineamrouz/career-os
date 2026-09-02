@@ -1,0 +1,52 @@
+<p><a routerLink="/">← All goals</a></p>
+
+<h1>New goal</h1>
+
+@if (error()) {
+  <div class="error" role="alert">{{ error() }}</div>
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" type="text" formControlName="title" autocomplete="off" />
+    @if (title.touched && title.invalid) {
+      <p class="field-error">
+        @if (title.hasError('required') || title.hasError('blank')) {
+          A title is required.
+        } @else {
+          Keep the title under 200 characters.
+        }
+      </p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="description">Description</label>
+    <textarea id="description" formControlName="description"></textarea>
+    @if (description.touched && description.invalid) {
+      <p class="field-error">Keep the description under 2000 characters.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="targetDate">Target date</label>
+    <input id="targetDate" type="date" formControlName="targetDate" />
+  </div>
+
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" formControlName="status">
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="row">
+    <button class="btn btn--primary" type="submit" [disabled]="saving()">
+      {{ saving() ? 'Creating…' : 'Create goal' }}
+    </button>
+    <a class="btn" routerLink="/">Cancel</a>
+  </div>
+</form>

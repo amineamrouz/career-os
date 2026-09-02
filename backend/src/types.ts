@@ -21,3 +21,8 @@ export interface Action {
 export interface GoalWithActions extends Goal {
   actions: Action[];
 }
+
+/** A goals-list row: the goal plus how many actions it has. */
+export interface GoalSummary extends Goal {
+  actionCount: number;
+}

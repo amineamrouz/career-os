@@ -1,0 +1,46 @@
+<div class="row spread">
+  <h1>Goals</h1>
+  <a class="btn btn--primary" routerLink="/goals/new">New goal</a>
+</div>
+
+@if (error()) {
+  <div class="error" role="alert">
+    <p>{{ error() }}</p>
+    <button class="btn" type="button" (click)="load()">Retry</button>
+  </div>
+}
+
+@if (loading()) {
+  <p class="loading">Loading goals…</p>
+} @else if (goals().length === 0) {
+  @if (!error()) {
+    <div class="empty">
+      <p>No goals yet.</p>
+      <a routerLink="/goals/new">Create your first goal</a>
+    </div>
+  }
+} @else {
+  <ul class="goal-list">
+    @for (goal of goals(); track goal.id) {
+      <li class="card row spread">
+        <div>
+          <a class="goal-title" [routerLink]="['/goals', goal.id]">{{ goal.title }}</a>
+          <div class="row goal-meta">
+            <span class="badge badge--{{ goal.status }}">{{ goal.status }}</span>
+            <span class="muted">
+              {{ goal.actionCount }} {{ goal.actionCount === 1 ? 'action' : 'actions' }}
+            </span>
+          </div>
+        </div>
+        <button
+          class="btn btn--danger"
+          type="button"
+          [disabled]="deletingId() === goal.id"
+          (click)="deleteGoal(goal)"
+        >
+          Delete
+        </button>
+      </li>
+    }
+  </ul>
+}

@@ -1,0 +1,180 @@
+:root {
+  --text: #1c1c1e;
+  --muted: #6b7280;
+  --line: #e2e4e8;
+  --bg: #fbfbfc;
+  --card: #ffffff;
+  --accent: #2b5fd9;
+  --danger: #b42318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.container {
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 0 1.25rem 3rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 2rem 0 0.75rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+/* Buttons */
+.btn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn--danger {
+  border-color: transparent;
+  color: var(--danger);
+  padding: 0.2rem 0.4rem;
+}
+
+/* Status badge */
+.badge {
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  text-transform: uppercase;
+}
+
+.badge--active {
+  background: #eef3ff;
+  border-color: #c3d3fb;
+  color: #2b5fd9;
+}
+
+.badge--completed {
+  background: #eaf7ee;
+  border-color: #b9e3c6;
+  color: #17663a;
+}
+
+.badge--archived {
+  background: #f2f3f5;
+  border-color: #dcdfe4;
+  color: #6b7280;
+}
+
+/* States */
+.error {
+  background: #fdf2f0;
+  border: 1px solid #f2c6bf;
+  border-radius: 8px;
+  color: var(--danger);
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.loading,
+.empty {
+  color: var(--muted);
+  padding: 1.5rem 0;
+}
+
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.row {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.spread {
+  justify-content: space-between;
+}
+
+/* Forms */
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+input[type='text'],
+input[type='date'],
+select,
+textarea {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+}
+
+textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
