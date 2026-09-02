@@ -17,3 +17,5 @@ src/**/*.js
 
 # OS
 .DS_Store
+*.db-wal
+*.db-shm
