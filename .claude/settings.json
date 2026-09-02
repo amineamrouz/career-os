@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 120,
+            "command": "f=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r '.file_path // empty'); case \"$f\" in *backend/src/*|*backend/tests/*) cd \"$CLAUDE_PROJECT_DIR/backend\" && npm test 2>&1 | tail -5 >&2 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}

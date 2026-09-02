@@ -1,3 +1,5 @@
+// Career OS Backend
+
 import express, { type Express } from 'express';
 import { createActionsRouter } from './actions/actions.routes.js';
 import type { Db } from './db/index.js';
