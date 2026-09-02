@@ -55,7 +55,7 @@ export function createGoalsRepository(db: Db) {
       if (!exists(id)) {
         return undefined;
       }
-      updateStmt.run({ ...input, id });
+      updateStmt.run({ ...input, id, updatedAt: new Date().toISOString() });
       return findById(id);
     },
 
