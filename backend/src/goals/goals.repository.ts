@@ -1,5 +1,12 @@
 import type { Db } from '../db/index.js';
 import type { Goal, GoalStatus, GoalSummary } from '../types.js';
+import { computeProgress } from './progress.js';
+
+/** What the aggregate query returns: completedActions is folded into progress. */
+interface GoalListRow extends Goal {
+  actionCount: number;
+  completedActions: number;
+}
 
 export interface GoalInput {
   title: string;
@@ -24,10 +31,14 @@ export function createGoalsRepository(db: Db) {
   );
   // LEFT JOIN so a goal with no actions counts 0 rather than being dropped, and
   // COUNT(a.id) rather than COUNT(*) so the join's null row does not count as 1.
+  // completed is stored as 0/1, so SUM is the completed count — COALESCE because
+  // SUM over no rows is NULL.
   // id is the tie-breaker: createdAt has millisecond resolution, so two goals
   // created in the same tick would otherwise order non-deterministically.
   const findAllStmt = db.prepare(
-    `SELECT g.*, COUNT(a.id) AS actionCount
+    `SELECT g.*,
+            COUNT(a.id) AS actionCount,
+            COALESCE(SUM(a.completed), 0) AS completedActions
        FROM goals g
        LEFT JOIN actions a ON a.goalId = g.id
       GROUP BY g.id
@@ -46,7 +57,11 @@ export function createGoalsRepository(db: Db) {
     findById,
     exists,
 
-    findAll: (): GoalSummary[] => findAllStmt.all() as GoalSummary[],
+    findAll: (): GoalSummary[] =>
+      (findAllStmt.all() as GoalListRow[]).map(({ completedActions, ...goal }) => ({
+        ...goal,
+        progress: computeProgress(goal.actionCount, completedActions),
+      })),
 
     create: (input: GoalInput): Goal => {
       const now = new Date().toISOString();

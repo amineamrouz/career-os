@@ -40,9 +40,25 @@
     <div class="error" role="alert">{{ actionError() }}</div>
   }
 
-  @if (goal()!.actions.length === 0) {
-    <p class="muted">No actions yet. Add the first one below.</p>
+  @if (goal()!.progress.totalActions === 0) {
+    <p class="muted">No actions yet</p>
   } @else {
+    <div
+      class="progress"
+      role="progressbar"
+      [attr.aria-valuenow]="goal()!.progress.percentage"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div class="progress__fill" [style.width.%]="goal()!.progress.percentage"></div>
+    </div>
+    <p class="progress-text">
+      {{ goal()!.progress.completedActions }} / {{ goal()!.progress.totalActions }} actions
+      completed ({{ goal()!.progress.percentage }}%)
+    </p>
+  }
+
+  @if (goal()!.actions.length > 0) {
     <ul class="action-list">
       @for (action of goal()!.actions; track action.id) {
         <li class="row spread action">

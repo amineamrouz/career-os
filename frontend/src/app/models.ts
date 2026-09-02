@@ -23,14 +23,23 @@ export interface Action {
   createdAt: string;
 }
 
-/** GET /api/goals — a goal plus its action count, no actions array. */
+/** How far along a goal's actions are. percentage is 0-100, already rounded. */
+export interface GoalProgress {
+  totalActions: number;
+  completedActions: number;
+  percentage: number;
+}
+
+/** GET /api/goals — a goal plus its action count and progress, no actions array. */
 export interface GoalSummary extends Goal {
   actionCount: number;
+  progress: GoalProgress;
 }
 
 /** GET /api/goals/:id — a goal with its actions embedded. */
 export interface GoalWithActions extends Goal {
   actions: Action[];
+  progress: GoalProgress;
 }
 
 /** What the create form sends. Empty inputs are sent as null, never ''. */

@@ -27,9 +27,14 @@
           <a class="goal-title" [routerLink]="['/goals', goal.id]">{{ goal.title }}</a>
           <div class="row goal-meta">
             <span class="badge badge--{{ goal.status }}">{{ goal.status }}</span>
-            <span class="muted">
-              {{ goal.actionCount }} {{ goal.actionCount === 1 ? 'action' : 'actions' }}
-            </span>
+            @if (goal.actionCount === 0) {
+              <span class="muted">No actions yet</span>
+            } @else {
+              <span class="muted">
+                {{ goal.actionCount }} {{ goal.actionCount === 1 ? 'action' : 'actions' }} ·
+                {{ goal.progress.percentage }}%
+              </span>
+            }
           </div>
         </div>
         <button

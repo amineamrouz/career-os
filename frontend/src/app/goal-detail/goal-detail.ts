@@ -4,6 +4,24 @@ import { apiErrorMessage } from '../api-error';
 import { GoalsService } from '../goals.service';
 import type { Action, GoalWithActions } from '../models';
 
+/**
+ * The API sends progress with the goal, but checking, adding and deleting an
+ * action all change it locally — so it is re-derived here rather than costing a
+ * refetch. Same rule as the server: no actions is 0%, and the percentage rounds.
+ */
+function withProgress(goal: GoalWithActions): GoalWithActions {
+  const totalActions = goal.actions.length;
+  const completedActions = goal.actions.filter((action) => action.completed).length;
+  return {
+    ...goal,
+    progress: {
+      totalActions,
+      completedActions,
+      percentage: totalActions === 0 ? 0 : Math.round((completedActions / totalActions) * 100),
+    },
+  };
+}
+
 @Component({
   selector: 'app-goal-detail',
   imports: [RouterLink],
@@ -87,7 +105,9 @@ export class GoalDetail {
     this.addingAction.set(true);
     this.goalsService.addAction(this.id(), title).subscribe({
       next: (action) => {
-        this.goal.update((goal) => (goal ? { ...goal, actions: [...goal.actions, action] } : goal));
+        this.goal.update((goal) =>
+          goal ? withProgress({ ...goal, actions: [...goal.actions, action] }) : goal,
+        );
         this.newActionTitle.set('');
         this.addingAction.set(false);
       },
@@ -104,7 +124,9 @@ export class GoalDetail {
     this.goalsService.removeAction(this.id(), action.id).subscribe({
       next: () => {
         this.goal.update((goal) =>
-          goal ? { ...goal, actions: goal.actions.filter((a) => a.id !== action.id) } : goal,
+          goal
+            ? withProgress({ ...goal, actions: goal.actions.filter((a) => a.id !== action.id) })
+            : goal,
         );
         this.setPending(action.id, false);
       },
@@ -140,7 +162,10 @@ export class GoalDetail {
   private replaceAction(updated: Action): void {
     this.goal.update((goal) =>
       goal
-        ? { ...goal, actions: goal.actions.map((a) => (a.id === updated.id ? updated : a)) }
+        ? withProgress({
+            ...goal,
+            actions: goal.actions.map((a) => (a.id === updated.id ? updated : a)),
+          })
         : goal,
     );
   }

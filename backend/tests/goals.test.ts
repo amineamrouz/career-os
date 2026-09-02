@@ -97,6 +97,20 @@ describe('GET /api/goals', () => {
     expect(counts.get(withNone.body.id)).toBe(0);
     expect(counts.get(withTwo.body.id)).toBe(2);
     expect(res.body[0]).not.toHaveProperty('actions');
+
+    const rows = new Map<number, { progress: unknown }>(
+      res.body.map((goal: { id: number; progress: unknown }) => [goal.id, goal]),
+    );
+    expect(rows.get(withNone.body.id)?.progress).toEqual({
+      totalActions: 0,
+      completedActions: 0,
+      percentage: 0,
+    });
+    expect(rows.get(withTwo.body.id)?.progress).toEqual({
+      totalActions: 2,
+      completedActions: 0,
+      percentage: 0,
+    });
   });
 
   it('returns an empty array when there are no goals', async () => {
@@ -115,6 +129,7 @@ describe('GET /api/goals/:id', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: goal.id, title: 'Learn Angular', actions: [] });
+    expect(res.body.progress).toEqual({ totalActions: 0, completedActions: 0, percentage: 0 });
   });
 
   it('embeds the goal actions, oldest first', async () => {
@@ -128,6 +143,7 @@ describe('GET /api/goals/:id', () => {
       'Read docs',
       'Build an app',
     ]);
+    expect(res.body.progress).toEqual({ totalActions: 2, completedActions: 0, percentage: 0 });
   });
 
   it('404s for an unknown id and 400s for a non-integer id', async () => {
@@ -234,5 +250,125 @@ describe('CORS', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:4200');
+  });
+});
+
+describe('goal progress', () => {
+  /** Creates a goal with `total` actions and completes the first `completed` of them. */
+  const goalWith = async (total: number, completed: number): Promise<number> => {
+    const { body: goal } = await createGoal({ title: `${completed}/${total}` });
+    const ids: number[] = [];
+    for (let i = 0; i < total; i += 1) {
+      const { body: action } = await request(app)
+        .post(`/api/goals/${goal.id}/actions`)
+        .send({ title: `Action ${i + 1}` });
+      ids.push(action.id);
+    }
+    for (const id of ids.slice(0, completed)) {
+      await request(app)
+        .patch(`/api/goals/${goal.id}/actions/${id}`)
+        .send({ completed: true });
+    }
+    return goal.id;
+  };
+
+  const progressOf = async (goalId: number) =>
+    (await request(app).get(`/api/goals/${goalId}`)).body.progress;
+
+  it('is 0% for a goal with no actions, never NaN', async () => {
+    expect(await progressOf(await goalWith(0, 0))).toEqual({
+      totalActions: 0,
+      completedActions: 0,
+      percentage: 0,
+    });
+  });
+
+  it('rounds to the nearest integer', async () => {
+    // 1/3 = 33.33 rounds down, 2/3 = 66.67 rounds up.
+    expect(await progressOf(await goalWith(3, 1))).toEqual({
+      totalActions: 3,
+      completedActions: 1,
+      percentage: 33,
+    });
+    expect(await progressOf(await goalWith(3, 2))).toEqual({
+      totalActions: 3,
+      completedActions: 2,
+      percentage: 67,
+    });
+  });
+
+  it('rounds a half up', async () => {
+    // 1/8 = 12.5 — the tie case.
+    expect((await progressOf(await goalWith(8, 1))).percentage).toBe(13);
+  });
+
+  it('is 100% when every action is complete', async () => {
+    expect(await progressOf(await goalWith(4, 4))).toEqual({
+      totalActions: 4,
+      completedActions: 4,
+      percentage: 100,
+    });
+  });
+
+  it('follows an action being marked and unmarked', async () => {
+    const { body: goal } = await createGoal();
+    const { body: action } = await request(app)
+      .post(`/api/goals/${goal.id}/actions`)
+      .send({ title: 'Read docs' });
+
+    await request(app)
+      .patch(`/api/goals/${goal.id}/actions/${action.id}`)
+      .send({ completed: true });
+    expect((await progressOf(goal.id)).percentage).toBe(100);
+
+    await request(app)
+      .patch(`/api/goals/${goal.id}/actions/${action.id}`)
+      .send({ completed: false });
+    expect((await progressOf(goal.id)).percentage).toBe(0);
+  });
+
+  it('drops back to 0% when the only completed action is deleted', async () => {
+    const { body: goal } = await createGoal();
+    const { body: kept } = await request(app)
+      .post(`/api/goals/${goal.id}/actions`)
+      .send({ title: 'Kept' });
+    const { body: doomed } = await request(app)
+      .post(`/api/goals/${goal.id}/actions`)
+      .send({ title: 'Doomed' });
+    await request(app)
+      .patch(`/api/goals/${goal.id}/actions/${doomed.id}`)
+      .send({ completed: true });
+    expect((await progressOf(goal.id)).percentage).toBe(50);
+
+    await request(app).delete(`/api/goals/${goal.id}/actions/${doomed.id}`);
+
+    expect(await progressOf(goal.id)).toEqual({
+      totalActions: 1,
+      completedActions: 0,
+      percentage: 0,
+    });
+    expect(kept.id).toBeGreaterThan(0);
+  });
+
+  it('reports the same progress on the list as on the detail', async () => {
+    const goalId = await goalWith(3, 2);
+
+    const list = await request(app).get('/api/goals');
+    const row = list.body.find((goal: { id: number }) => goal.id === goalId);
+
+    expect(row.progress).toEqual(await progressOf(goalId));
+  });
+
+  it('keeps progress separate per goal', async () => {
+    const half = await goalWith(2, 1);
+    const done = await goalWith(2, 2);
+
+    const list = await request(app).get('/api/goals');
+    const byId = new Map<number, { progress: { percentage: number } }>(
+      list.body.map((goal: { id: number }) => [goal.id, goal]),
+    );
+
+    expect(byId.get(half)?.progress.percentage).toBe(50);
+    expect(byId.get(done)?.progress.percentage).toBe(100);
   });
 });
